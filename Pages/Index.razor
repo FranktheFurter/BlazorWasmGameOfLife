@@ -1,0 +1,197 @@
+﻿@page "/"
+<div class="container">
+    <table>
+        @for (int i = 0; i < Size; i++)
+        {
+            <tr>
+                @for (int j = 0; j < Size; j++)
+                {
+                    @if (Field[i, j] == 2)
+                    {
+                        <td style="@BorderCell"></td>
+                    }
+                    @if (Field[i, j] == 1)
+                    {
+                        <td style="@AliveCell"></td>
+                    }
+                    @if (Field[i, j] == 0)
+                    {
+                        <td style="@DeadCell"></td>
+                    }
+                }
+            </tr>
+        }
+    </table>
+</div>
+<div class="container mt-3">
+    <button class="btn btn-primary" @onclick="FillField">Reset</button>
+    <button class="btn btn-primary" @onclick="Step">Step</button>
+    <button class="btn btn-primary" @onclick="Autostep">Autostep</button>
+    <p>Iteration: @IterationCounter</p>
+</div>
+<style>
+    .dead{
+    }
+</style>
+
+@code {
+    static int Size = 85;
+    int Threshold = 85;
+    Random rand = new Random();
+    int[,] Field = new int[Size, Size];
+    int[,] TmpField = new int[Size, Size];
+    int IterationCounter = 0;
+
+    bool toggle = false;
+
+    String AliveCell = "background-color: black; width: 10px; height: 10px;";
+    String DeadCell = "background-color: white; width: 10px; height: 10px;";
+    String BorderCell = "background-color: black; width: 5px; height: 5px;";
+
+    protected override async Task OnInitializedAsync()
+    {
+        FillField();
+    }
+
+    private void FillField()
+    {
+        IterationCounter = 0;
+    //Field
+        for (int i = 0; i < Size; i++)
+        {
+            for (int j = 0; j < Size; j++)
+            {
+                if (rand.Next(100) > Threshold)
+                {
+                    Field[i, j] = 1;
+                    TmpField[i, j] = 1;
+                }
+                else
+                {
+                    Field[i, j] = 0;
+                    TmpField[i, j] = 0;
+                }
+            }
+        }
+    //Border
+        for (int i = 0; i < Size; i++)
+        {
+            for (int j = 0; j < Size; j++)
+            {
+                if (i == 0 || j == 0 || i == Size - 1 || j == Size - 1)
+                {
+                    Field[i, j] = 2;
+                    TmpField[i, j] = 2;
+                }
+            }
+        }
+    }
+
+    private void Step()
+    {
+    //iterate through all elements without the border
+        for (int i = 1; i < Size - 1; i++)
+        {
+            for (int j = 1; j < Size - 1; j++)
+            {
+                int aliveNeighbours = CountAliveNeighbours(i, j);
+    //Logic
+    //Eine tote Zelle mit genau drei lebenden Nachbarn wird in der Folgegeneration neu geboren.
+                if ((Field[i, j] == 0) && (aliveNeighbours == 3))
+                {
+                    TmpField[i, j] = 1;
+                }
+    //Lebende Zellen mit weniger als zwei lebenden Nachbarn sterben in der Folgegeneration an Einsamkeit.
+                if ((Field[i, j] == 1) && (aliveNeighbours < 2))
+                {
+                    TmpField[i, j] = 0;
+                }
+    //Eine lebende Zelle mit zwei oder drei lebenden Nachbarn bleibt in der Folgegeneration am Leben.
+                if ((Field[i, j] == 1) && (aliveNeighbours == 2 || aliveNeighbours == 3))
+                {
+                    TmpField[i, j] = 1;
+                }
+    //Lebende Zellen mit mehr als drei lebenden Nachbarn sterben in der Folgegeneration an Überbevölkerung.
+                if ((Field[i, j] == 1) && (aliveNeighbours > 3))
+                {
+                    TmpField[i, j] = 0;
+                }
+            }
+        }
+
+    //Warum Funktioniert das
+        for (int i = 1; i < Size - 1; i++)
+        {
+            for (int j = 1; j < Size - 1; j++)
+            {
+                Field[i, j] = TmpField[i, j];
+            }
+        }
+
+    //Warum Funktioniert das nicht??????
+        //Field = TmpField;
+        
+        IterationCounter++;
+        StateHasChanged();
+        
+    }
+
+    private async void Autostep()
+    {
+        toggle = !toggle;
+        while (toggle)
+        {
+            await Task.Delay(50);
+            Step();
+            StateHasChanged();
+        }
+    }
+
+    private int CountAliveNeighbours(int i, int j)
+    {
+        int counter = 0;
+
+    //tl
+        if (Field[i - 1, j - 1] == 1)
+        {
+            counter++;
+        }
+    //tm
+        if (Field[i - 1, j] == 1)
+        {
+            counter++;
+        }
+    //tr
+        if (Field[i - 1, j + 1] == 1)
+        {
+            counter++;
+        }
+    //ml
+        if (Field[i, j - 1] == 1)
+        {
+            counter++;
+        }
+    //mr
+        if (Field[i, j + 1] == 1)
+        {
+            counter++;
+        }
+    //bl
+        if (Field[i + 1, j - 1] == 1)
+        {
+            counter++;
+        }
+    //bm
+        if (Field[i + 1, j] == 1)
+        {
+            counter++;
+        }
+    //br
+        if (Field[i + 1, j + 1] == 1)
+        {
+            counter++;
+        }
+        return counter;
+    }
+
+}
